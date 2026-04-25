@@ -923,9 +923,10 @@ let   lastSendTime  = 0;
 
 // ── Storage keys (v9 — versioned to avoid stale data) ──────────
 const KEYS = {
-  token: 'ashra_jwt_v9',
-  user:  'ashra_user_v9',
-  chats: u => `ashra_chats_v9_${u}`,
+  token:      'ashra_jwt_v9',
+  user:       'ashra_user_v9',
+  chats:      u => `ashra_chats_v9_${u}`,
+  activeChat: u => `ashra_active_v9_${u}`,
 };
 
 // ── State ───────────────────────────────────────────────────────
@@ -1139,6 +1140,7 @@ authSubmit.addEventListener('click', async () => {
 // Logout
 document.getElementById('logoutBtn').addEventListener('click', () => {
   saveChats();
+  if (currentUser) localStorage.removeItem(KEYS.activeChat(currentUser));
   clearToken();
   localStorage.removeItem(KEYS.user);
   currentUser = null; chats = []; activeChatId = null;
@@ -1154,14 +1156,36 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 function loadChats() {
   try { chats = JSON.parse(localStorage.getItem(KEYS.chats(currentUser)) || '[]'); }
   catch { chats = []; }
-  const fresh = createChat('New Chat');
-  activeChatId = fresh.id;
+
+  // Restore the last active chat ID from localStorage
+  const savedActiveId = localStorage.getItem(KEYS.activeChat(currentUser));
+
+  if (chats.length === 0) {
+    // No chats at all — create exactly one empty chat to start with
+    const first = createChat('New Chat');
+    activeChatId = first.id;
+  } else {
+    // Try to restore the previously active chat
+    const restoredChat = savedActiveId && chats.find(c => c.id === savedActiveId);
+    if (restoredChat) {
+      activeChatId = restoredChat.id;
+    } else {
+      // Fall back to most recent chat
+      activeChatId = chats[0].id;
+    }
+  }
+
+  saveActiveChat();
   renderSidebar();
   renderMessages();
 }
 
 function saveChats() {
   try { localStorage.setItem(KEYS.chats(currentUser), JSON.stringify(chats)); } catch(e) {}
+}
+
+function saveActiveChat() {
+  try { localStorage.setItem(KEYS.activeChat(currentUser), activeChatId); } catch(e) {}
 }
 
 function genId() { return 'c' + Date.now() + Math.random().toString(36).slice(2, 5); }
@@ -1182,7 +1206,10 @@ function titleFromMsg(text) {
 document.getElementById('btnClearChats').addEventListener('click', () => {
   showConfirm('Clear All Chats?', 'All conversations will be permanently deleted.', () => {
     chats = []; saveChats();
-    const f = createChat('New Chat'); activeChatId = f.id;
+    // Create one fresh empty chat after clearing
+    const f = createChat('New Chat');
+    activeChatId = f.id;
+    saveActiveChat();
     renderSidebar(); renderMessages();
     showToast('Chats cleared 🌟');
   });
@@ -1301,14 +1328,38 @@ function cancelRename(item) { item.classList.remove('renaming'); }
 function doDeleteChat(id) {
   chats = chats.filter(c => c.id !== id); saveChats();
   if (activeChatId === id) {
-    activeChatId = chats.length > 0 ? chats[0].id : createChat('New Chat').id;
+    // Prefer switching to an existing empty chat rather than creating a new one
+    const emptyChat = chats.find(c => c.messages.length === 0);
+    if (emptyChat) {
+      activeChatId = emptyChat.id;
+    } else if (chats.length > 0) {
+      activeChatId = chats[0].id;
+    } else {
+      // Last chat was deleted — create one fresh empty chat
+      const fresh = createChat('New Chat');
+      activeChatId = fresh.id;
+    }
+    saveActiveChat();
     renderMessages();
   }
   renderSidebar();
 }
 
 newChatBtn.addEventListener('click', () => {
-  const nc = createChat('New Chat'); activeChatId = nc.id;
+  // If the current active chat is already empty, just focus input — don't create another
+  const current = getActiveChat();
+  if (current && current.messages.length === 0) {
+    userInput.focus(); closeSidebarMobile(); return;
+  }
+  // Check if any empty chat already exists — reuse it
+  const existingEmpty = chats.find(c => c.messages.length === 0);
+  if (existingEmpty) {
+    activeChatId = existingEmpty.id;
+  } else {
+    const nc = createChat('New Chat');
+    activeChatId = nc.id;
+  }
+  saveActiveChat();
   renderSidebar(); renderMessages(); userInput.focus(); closeSidebarMobile();
 });
 
@@ -1322,6 +1373,7 @@ const messagesWrapper = document.getElementById('messagesWrapper');
 function switchChat(id) {
   if (id === activeChatId) return;
   activeChatId = id;
+  saveActiveChat();
   renderSidebar(); renderMessages(); userInput.focus();
 }
 
@@ -1415,13 +1467,21 @@ async function handleSend() {
   if (!text || text.length > MAX_MSG_LEN) { appendAIError(`Message too long (max ${MAX_MSG_LEN} chars).`); return; }
 
   lastSendTime = Date.now();
-  const chat = getActiveChat(); if (!chat) return;
 
-  // Auto-title from first message
+  // Lazy creation: if somehow no active chat exists, create one now
+  let chat = getActiveChat();
+  if (!chat) {
+    const nc = createChat('New Chat');
+    activeChatId = nc.id;
+    saveActiveChat();
+    chat = nc;
+  }
+
+  // Auto-title from first message and persist
   if (chat.messages.length === 0) {
     chat.title = titleFromMsg(text);
     headerTitle.textContent = chat.title;
-    saveChats(); renderSidebar();
+    saveChats(); saveActiveChat(); renderSidebar();
   }
 
   messagesEl.querySelector('.empty-state')?.remove();
