@@ -30,7 +30,7 @@
       width: 56px; height: 56px;
       background: linear-gradient(135deg, #22c55e, #38bdf8);
       border-radius: 16px; display: grid; place-items: center;
-      font-size: 28px; color: #fff;
+      font-size: 39px; color: #fff;
       box-shadow: 0 0 40px rgba(34,197,94,.5);
       animation: boot-pulse 1.2s ease-in-out infinite;
     }
@@ -365,7 +365,7 @@ body.visible { opacity: 1; }
   width: 54px; height: 54px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary), var(--accent));
   border-radius: 16px; display: grid; place-items: center;
-  font-size: 26px;
+  font-size: 36px;
   box-shadow: 0 0 40px var(--primary-glow), 0 0 14px rgba(56,189,248,.28);
 }
 .auth-logo-title { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1.1; }
@@ -462,7 +462,7 @@ body.visible { opacity: 1; }
   width: 44px; height: 44px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary), var(--accent));
   border-radius: 13px; display: grid; place-items: center;
-  font-size: 22px;
+  font-size: 30px;
   box-shadow: 0 0 28px var(--primary-glow), 0 0 10px rgba(56,189,248,.22);
 }
 .logo-name {
@@ -663,7 +663,7 @@ body.visible { opacity: 1; }
 .empty-icon {
   width: 80px; height: 80px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 24px; display: grid; place-items: center; font-size: 38px;
+  border-radius: 24px; display: grid; place-items: center; font-size: 53px;
   box-shadow: 0 0 52px var(--primary-glow), 0 0 18px rgba(56,189,248,.2);
 }
 .empty-title { font-family: var(--font-display); font-weight: 800; font-size: 1.55rem; text-align: center; }
@@ -708,7 +708,7 @@ body.visible { opacity: 1; }
 
 .msg-avatar {
   width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-  display: grid; place-items: center; font-size: 16px; font-weight: 700;
+  display: grid; place-items: center; font-size: 22px; font-weight: 700;
   flex-shrink: 0;
 }
 .ai-avatar {
@@ -794,17 +794,17 @@ body.visible { opacity: 1; }
    INPUT AREA — modern, clean, focused glow
 ══════════════════════════════════════════════════ */
 .input-area {
-  flex-shrink: 0; padding: 16px 24px 14px;
+  flex-shrink: 0; padding: 10px 24px 8px;
   background: rgba(6,12,25,.78);
   backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
   border-top: 1px solid var(--glass-border);
 }
 
 .input-box {
-  display: flex; gap: 12px; align-items: flex-end;
-  max-width: 840px; margin: 0 auto;
+  display: flex; gap: 8px; align-items: center;
+  max-width: 720px; margin: 0 auto;
   background: var(--glass); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 10px 10px 10px 20px;
+  border-radius: var(--r-xl); padding: 6px 6px 6px 16px;
   transition: border-color var(--t-slow), box-shadow var(--t-slow);
 }
 .input-box:focus-within {
@@ -816,16 +816,16 @@ body.visible { opacity: 1; }
 textarea {
   width: 100%; background: transparent; border: none; outline: none;
   color: var(--text-high); font-family: var(--font-body);
-  font-size: .93rem; line-height: 1.62; resize: none;
-  max-height: 200px; scrollbar-width: thin;
+  font-size: .93rem; line-height: 1.5; resize: none;
+  max-height: 140px; scrollbar-width: thin; padding: 8px 0;
 }
 textarea::placeholder { color: var(--text-low); }
 
 .send-btn {
-  width: 42px; height: 42px; flex-shrink: 0;
+  width: 36px; height: 36px; flex-shrink: 0;
   display: grid; place-items: center;
   background: linear-gradient(135deg, var(--primary), #15a34a);
-  border: none; border-radius: var(--r-md); color: #fff;
+  border: none; border-radius: 10px; color: #fff;
   cursor: pointer; transition: all var(--t);
   box-shadow: 0 0 18px var(--primary-glow);
 }
@@ -837,7 +837,7 @@ textarea::placeholder { color: var(--text-low); }
 
 .input-hint {
   text-align: center; font-size: .67rem; color: var(--text-low);
-  margin-top: 9px; max-width: 840px; margin-left: auto; margin-right: auto;
+  margin-top: 6px; max-width: 720px; margin-left: auto; margin-right: auto;
 }
 
 /* ══════════════════════════════════════════════════
