@@ -836,6 +836,7 @@ body {
   position: relative;
   display: flex; align-items: center;
   max-width: 720px; margin: 0 auto;
+  min-height: 58px;
   background: var(--glass); border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
   transition: border-color var(--t-slow), box-shadow var(--t-slow);
@@ -1522,7 +1523,7 @@ function renderMessages() {
   if (chat.messages.length === 0) { renderEmptyState(); return; }
   chat.messages.forEach(m => {
     if (m.role === 'user')           renderUserBubble(m.content, m.time, false);
-    else if (m.role === 'assistant') renderAIBubble(m.content, m.time, false);
+    else if (m.role === 'assistant') renderAIBubble(m.content, m.time);
   });
   scrollToBottom();
 }
@@ -1633,9 +1634,9 @@ async function handleSend() {
   sendBtn.disabled = true;
 
   const thinkId = showThinking();
+  let thinkingRemoved = false;
 
   try {
-    // Send last CONTEXT_MSGS messages as history for persistent context
     const context = chat.messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .slice(-CONTEXT_MSGS)
@@ -1648,14 +1649,19 @@ async function handleSend() {
     });
 
     removeThinking(thinkId);
+    thinkingRemoved = true;
+
     const reply     = data.reply ?? 'No response received.';
     const replyTime = nowTime();
-    await renderAIBubble(reply, replyTime, true);
+
+    // Stream character-by-character into the bubble in real-time
+    await streamAIBubble(reply, replyTime);
+
     chat.messages.push({ role: 'assistant', content: reply, time: replyTime });
     saveChats();
 
   } catch (err) {
-    removeThinking(thinkId);
+    if (!thinkingRemoved) removeThinking(thinkId);
     if (err.message.includes('401') || err.message.toLowerCase().includes('token')) {
       appendAIError('Session expired. Logging you out…');
       setTimeout(() => document.getElementById('logoutBtn').click(), 1500);
@@ -1687,49 +1693,72 @@ function renderUserBubble(text, time, animate) {
   if (animate) scrollToBottom();
 }
 
-async function renderAIBubble(fullText, time, animate) {
+// Instant render — used when loading chat history (no animation)
+function renderAIBubble(fullText, time) {
   const d = document.createElement('div');
   d.className = 'message ai-message';
-  if (!animate) d.style.animation = 'none';
+  d.style.animation = 'none';
+
+  const content = document.createElement('div'); content.className = 'msg-content';
+  content.innerHTML = `<div class="msg-sender">Ashra</div>`;
+  const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+  bubble.innerHTML = parseMarkdown(fullText);
+  content.appendChild(bubble);
+  const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = time || '';
+  content.appendChild(t);
+
+  d.innerHTML = `<div class="msg-avatar ai-avatar"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>`;
+  d.appendChild(content);
+  messagesEl.appendChild(d);
+}
+
+// Real-time streaming — character by character, markdown rendered live
+// Thinking indicator must be removed BEFORE calling this
+async function streamAIBubble(fullText, time) {
+  // Create the bubble immediately (visible right away)
+  const d = document.createElement('div');
+  d.className = 'message ai-message';
 
   const content = document.createElement('div'); content.className = 'msg-content';
   content.innerHTML = `<div class="msg-sender">Ashra</div>`;
   const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
   content.appendChild(bubble);
+
   d.innerHTML = `<div class="msg-avatar ai-avatar"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>`;
   d.appendChild(content);
   messagesEl.appendChild(d);
+  scrollToBottom();
 
-  if (!animate) {
-    bubble.innerHTML = parseMarkdown(fullText);
-    const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = time || '';
-    content.appendChild(t); return;
-  }
+  // Stream character-by-character using requestAnimationFrame for smoothness
+  // CHUNK_SIZE controls how many chars are revealed per frame
+  // Higher = faster streaming feel; lower = slower but smoother
+  const CHUNK_SIZE = 3;
+  const FRAME_DELAY = 16; // ~60fps
 
-  // ── Stream line-by-line ──────────────────────────────────────
-  // Reveal one line at a time so markdown is always parsed on a
-  // complete line — bullets and bold show correctly from the start.
-  const lines = fullText.split('\n');
-  let revealed = 0;          // how many lines revealed so far
-  const LINE_DELAY = 38;     // ms between lines (adjust for feel)
-
+  let i = 0;
   await new Promise(resolve => {
-    const iv = setInterval(() => {
-      revealed++;
-      const partial = lines.slice(0, revealed).join('\n');
-
-      if (revealed >= lines.length) {
-        clearInterval(iv);
+    function tick() {
+      if (i >= fullText.length) {
+        // Streaming complete — render final parsed markdown + timestamp
         bubble.innerHTML = parseMarkdown(fullText);
         const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = time || '';
-        content.appendChild(t); scrollToBottom(); resolve();
-      } else {
-        // Render complete lines so far + blinking cursor on last line
-        bubble.innerHTML = parseMarkdown(partial) +
-          '<span class="typing-cursor"></span>';
+        content.appendChild(t);
         scrollToBottom();
+        resolve();
+        return;
       }
-    }, LINE_DELAY);
+
+      i = Math.min(i + CHUNK_SIZE, fullText.length);
+      const partial = fullText.slice(0, i);
+
+      // Render markdown on partial text so formatting shows in real-time
+      bubble.innerHTML = parseMarkdown(partial) +
+        '<span class="typing-cursor"></span>';
+      scrollToBottom();
+
+      setTimeout(tick, FRAME_DELAY);
+    }
+    tick();
   });
 }
 
