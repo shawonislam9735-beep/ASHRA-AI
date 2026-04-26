@@ -30,8 +30,8 @@
     .boot-mark {
       width: 56px; height: 56px;
       background: linear-gradient(135deg, #22c55e, #38bdf8);
-      border-radius: 16px; display: flex; align-items: center; justify-content: center;
-      font-size: 39px; line-height: 1; color: #fff;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 0 40px rgba(34,197,94,.5);
       animation: boot-pulse 1.2s ease-in-out infinite;
     }
@@ -57,7 +57,11 @@
 <!-- LOADING SCREEN — shown during auth check -->
 <div id="loadingScreen">
   <div class="boot-logo">
-    <div class="boot-mark">⬡</div>
+    <div class="boot-mark">
+      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/>
+      </svg>
+    </div>
     <div class="boot-name">Ashra</div>
     <div class="boot-status" id="bootStatus">Loading…</div>
   </div>
@@ -73,7 +77,11 @@
 <div class="auth-screen" id="authScreen" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">
-      <div class="auth-logo-mark">⬡</div>
+      <div class="auth-logo-mark">
+        <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <div>
         <div class="auth-logo-title"><span>Ashra</span></div>
         <div class="auth-logo-sub">Intelligence, Activated</div>
@@ -137,7 +145,11 @@
   <!-- ─── SIDEBAR ─── -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-mark">⬡</div>
+      <div class="logo-mark">
+        <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <span class="logo-name">Ashra</span>
     </div>
 
@@ -373,7 +385,6 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   border-radius: 16px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 36px; line-height: 1;
   box-shadow: 0 0 40px var(--primary-glow), 0 0 14px rgba(56,189,248,.28);
 }
 .auth-logo-title { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1.1; }
@@ -471,7 +482,6 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   border-radius: 13px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 30px; line-height: 1;
   box-shadow: 0 0 28px var(--primary-glow), 0 0 10px rgba(56,189,248,.22);
 }
 .logo-name {
@@ -672,7 +682,7 @@ body {
 .empty-icon {
   width: 80px; height: 80px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 53px; line-height: 1;
+  border-radius: 24px; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 52px var(--primary-glow), 0 0 18px rgba(56,189,248,.2);
 }
 .empty-title { font-family: var(--font-display); font-weight: 800; font-size: 1.55rem; text-align: center; }
@@ -718,7 +728,9 @@ body {
 .msg-avatar {
   width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; font-weight: 700; line-height: 1;
+}
+.user-avatar-letter {
+  font-family: var(--font-display); font-size: .82rem; font-weight: 700; line-height: 1;
 }
 .ai-avatar {
   background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -833,14 +845,17 @@ body {
   box-shadow: 0 0 0 3px rgba(34,197,94,.08), 0 0 26px rgba(34,197,94,.1);
 }
 
-.textarea-wrap { flex: 1; }
+.textarea-wrap { flex: 1; display: flex; align-items: center; }
 textarea {
   width: 100%; background: transparent; border: none; outline: none;
   color: var(--text-high); font-family: var(--font-body);
-  font-size: .93rem; line-height: 1.5; resize: none;
+  font-size: .93rem; line-height: normal; resize: none;
   max-height: 140px; scrollbar-width: thin;
-  /* padding-right reserves space for the absolute send button */
-  padding: 14px 52px 14px 18px;
+  /* Equal vertical padding keeps cursor perfectly centered on single line */
+  padding: 13px 52px 13px 18px;
+  caret-color: white;
+  /* Prevent any baseline shift */
+  vertical-align: middle;
 }
 textarea::placeholder { color: rgba(148,163,184,.5); }
 
@@ -1516,7 +1531,7 @@ function renderEmptyState() {
   const d = document.createElement('div'); d.className = 'empty-state';
   const name = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
   d.innerHTML = `
-    <div class="empty-icon">⬡</div>
+    <div class="empty-icon"><svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>
     <div class="empty-title">Hey <span>${escapeHTML(name)}</span>! 👋</div>
     <p class="empty-sub">Ask me anything — I give clear, thoughtful answers and remember our conversation 😊</p>
     <div class="empty-suggestions">
@@ -1662,7 +1677,7 @@ function renderUserBubble(text, time, animate) {
   d.className = 'message user-message';
   if (!animate) d.style.animation = 'none';
   d.innerHTML = `
-    <div class="msg-avatar user-avatar">${initials}</div>
+    <div class="msg-avatar user-avatar"><span class="user-avatar-letter">${initials}</span></div>
     <div class="msg-content">
       <div class="msg-sender">You</div>
       <div class="msg-bubble">${escapeHTML(text)}</div>
@@ -1681,7 +1696,7 @@ async function renderAIBubble(fullText, time, animate) {
   content.innerHTML = `<div class="msg-sender">Ashra</div>`;
   const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
   content.appendChild(bubble);
-  d.innerHTML = `<div class="msg-avatar ai-avatar">⬡</div>`;
+  d.innerHTML = `<div class="msg-avatar ai-avatar"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>`;
   d.appendChild(content);
   messagesEl.appendChild(d);
 
@@ -1721,7 +1736,7 @@ async function renderAIBubble(fullText, time, animate) {
 function appendAIError(msg) {
   const d = document.createElement('div'); d.className = 'message ai-message';
   d.innerHTML = `
-    <div class="msg-avatar ai-avatar">⬡</div>
+    <div class="msg-avatar ai-avatar"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>
     <div class="msg-content">
       <div class="msg-sender">Ashra</div>
       <div class="msg-bubble" style="border-color:rgba(244,63,94,.3);color:var(--danger)">⚠ ${escapeHTML(msg)}</div>
@@ -1736,7 +1751,7 @@ function showThinking() {
   const d  = document.createElement('div');
   d.className = 'message ai-message thinking-indicator'; d.id = id;
   d.innerHTML = `
-    <div class="msg-avatar ai-avatar">⬡</div>
+    <div class="msg-avatar ai-avatar"><svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" stroke="white" stroke-width="7" stroke-linejoin="round"/></svg></div>
     <div class="msg-content">
       <div class="msg-sender">Ashra</div>
       <div class="msg-bubble">
