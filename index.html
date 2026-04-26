@@ -40,6 +40,11 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       letter-spacing: .02em;
     }
+    .boot-status {
+      font-family: 'DM Sans', sans-serif; font-size: .78rem;
+      color: rgba(148,163,184,.6); margin-top: 4px; text-align: center;
+      transition: opacity .4s ease;
+    }
     @keyframes boot-pulse {
       0%, 100% { box-shadow: 0 0 40px rgba(34,197,94,.5); transform: scale(1); }
       50%       { box-shadow: 0 0 60px rgba(34,197,94,.7); transform: scale(1.04); }
@@ -53,6 +58,7 @@
   <div class="boot-logo">
     <div class="boot-mark">⬡</div>
     <div class="boot-name">Ashra</div>
+    <div class="boot-status" id="bootStatus">Loading…</div>
   </div>
 </div>
 
@@ -944,15 +950,50 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` };
 }
 
-// ── API helper ──────────────────────────────────────────────────
-async function apiCall(endpoint, options = {}) {
-  const res  = await fetch(API_BASE + endpoint, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-  return data;
+// ── API helper with retry ───────────────────────────────────────
+// Retries once on network failure (handles Render cold-start ~30s spin-up)
+// timeout: how long to wait before aborting a single attempt (ms)
+async function apiCall(endpoint, options = {}, retries = 1, timeout = 25000) {
+  const attempt = async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(API_BASE + endpoint, {
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options,
+      });
+      clearTimeout(timer);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      return data;
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
+  };
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      const isLast        = i === retries;
+      const isNetworkErr  = err.name === 'AbortError' || err.message === 'Failed to fetch' || err.name === 'TypeError';
+      const isAuthErr     = err.message && (err.message.includes('401') || err.message.toLowerCase().includes('token') || err.message.toLowerCase().includes('expired'));
+
+
+      // Never retry auth errors — token is genuinely invalid
+      if (isAuthErr) throw err;
+
+      // Retry network errors (Render cold start, brief outage)
+      if (isNetworkErr && !isLast) {
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+
+      throw err;
+    }
+  }
 }
 
 // ── Input sanitisation ──────────────────────────────────────────
@@ -977,36 +1018,62 @@ function validatePassword(p) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   ZERO-FLICKER AUTH BOOT
+   AUTH BOOT — robust, retry-aware, no false logouts
    ─────────────────────────────────────────────────────────────
-   Strategy:
-   1. body starts with opacity:0 (CSS above)
-   2. Loading spinner is shown
-   3. We check localStorage for token
-   4. Call /me — responds in <1ms (synchronous JWT verify)
-   5. If valid:   hide loader, fade in app shell
-   6. If invalid: hide loader, fade in auth screen
-   Result: login screen NEVER flashes for logged-in users
+   FIX 1 — Network errors (Render cold start) no longer clear
+            the token. Only a genuine 401 does that.
+   FIX 2 — /me is retried once after a 3s pause if it fails
+            due to network timeout (covers 30s spin-up window).
+   FIX 3 — Loading screen stays visible during retry so user
+            never sees a blank screen or false login flash.
 ══════════════════════════════════════════════════════════════ */
 async function authInit() {
   const savedToken = localStorage.getItem(KEYS.token);
   const savedUser  = localStorage.getItem(KEYS.user);
 
+  // After 4s still loading → tell user server is waking up (Render cold start)
+  const slowTimer = setTimeout(() => {
+    const el = document.getElementById('bootStatus');
+    if (el) el.textContent = 'Server waking up… please wait';
+  }, 4000);
+
+
   if (savedToken && savedUser) {
     try {
       jwtToken = savedToken;
-      const data = await apiCall('/me', { headers: authHeaders() });
+      // Retry once — handles Render free-tier cold start (can take 30–60s)
+      const data = await apiCall('/me', { headers: authHeaders() }, 1, 25000);
+      clearTimeout(slowTimer);
       currentUser = data.username;
-      revealApp();   // ✅ token valid → show app, never show login
+      // Keep stored username in sync (server is authoritative)
+      localStorage.setItem(KEYS.user, data.username);
+      revealApp();
       return;
-    } catch {
-      // Token expired or invalid
-      clearToken();
-      localStorage.removeItem(KEYS.user);
+    } catch (err) {
+      clearTimeout(slowTimer);
+
+      const isAuthErr = err.message && (
+        err.message.includes('401') ||
+        err.message.toLowerCase().includes('token') ||
+        err.message.toLowerCase().includes('expired') ||
+        err.message.toLowerCase().includes('invalid')
+      );
+
+      if (isAuthErr) {
+        // Genuine auth failure — clear stored session
+        clearToken();
+        localStorage.removeItem(KEYS.user);
+      } else {
+        // Network failure / server down — DO NOT clear token
+        // Show offline notice but let user stay "logged in" locally
+        revealAuthWithNotice('Server is starting up. Please wait a moment and try again.');
+        return;
+      }
     }
   }
 
-  revealAuth();   // no valid token → show login
+  clearTimeout(slowTimer);
+  revealAuth();
 }
 
 function revealApp() {
@@ -1023,6 +1090,12 @@ function revealAuth() {
   document.body.style.opacity = '1';
   document.body.classList.add('visible');
   authUsername.focus();
+}
+
+// Show auth screen with a prefilled status message (network down etc.)
+function revealAuthWithNotice(msg) {
+  revealAuth();
+  showAuthMsg(msg, 'error');
 }
 
 function initApp() {
@@ -1097,6 +1170,7 @@ function clearAuthMsg() { authMsg.className = 'auth-msg'; authMsg.textContent = 
 
 authSubmit.addEventListener('click', async () => {
   clearAuthMsg();
+  // Trim + lowercase for consistent matching with backend
   const username = authUsername.value.trim().toLowerCase();
   const password = authPassword.value;
 
@@ -1111,14 +1185,17 @@ authSubmit.addEventListener('click', async () => {
   authSubmit.disabled = true;
   authSubmit.textContent = 'Please wait…';
 
+  const endpoint = authMode === 'login' ? '/login' : '/signup';
+
   try {
-    const endpoint = authMode === 'login' ? '/login' : '/signup';
     const data = await apiCall(endpoint, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-    });
+    }, 1, 20000); // retry once, 20s timeout
+
 
     storeToken(data.token);
+    // Always store the username the SERVER returns (authoritative, correct case)
     localStorage.setItem(KEYS.user, data.username);
     currentUser = data.username;
 
@@ -1131,7 +1208,28 @@ authSubmit.addEventListener('click', async () => {
     }
 
   } catch (err) {
-    showAuthMsg(err.message || 'Something went wrong. Try again.');
+
+    // Give specific, helpful messages based on error type
+    let msg = err.message || 'Something went wrong. Try again.';
+
+    // Network / server offline
+    if (err.name === 'AbortError' || msg === 'Failed to fetch' || err.name === 'TypeError') {
+      msg = 'Cannot reach server. It may be starting up — wait 30 seconds and try again.';
+    }
+    // Wrong password
+    else if (msg.toLowerCase().includes('incorrect') || msg.toLowerCase().includes('password')) {
+      msg = 'Incorrect password. Please try again.';
+    }
+    // Username not found — give helpful suggestion
+    else if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no account')) {
+      msg = 'No account found with that username. Check spelling or create an account.';
+    }
+    // Already taken
+    else if (msg.toLowerCase().includes('taken') || msg.toLowerCase().includes('exists')) {
+      msg = 'Username already taken. Try a different one or sign in instead.';
+    }
+
+    showAuthMsg(msg);
     authSubmit.disabled = false;
     authSubmit.textContent = authMode === 'login' ? 'Sign In →' : 'Create Account →';
   }
