@@ -30,8 +30,8 @@
     .boot-mark {
       width: 56px; height: 56px;
       background: linear-gradient(135deg, #22c55e, #38bdf8);
-      border-radius: 16px; display: grid; place-items: center;
-      font-size: 39px; color: #fff;
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 39px; line-height: 1; color: #fff;
       box-shadow: 0 0 40px rgba(34,197,94,.5);
       animation: boot-pulse 1.2s ease-in-out infinite;
     }
@@ -371,8 +371,9 @@ body {
 .auth-logo-mark {
   width: 54px; height: 54px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 16px; display: grid; place-items: center;
-  font-size: 36px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; line-height: 1;
   box-shadow: 0 0 40px var(--primary-glow), 0 0 14px rgba(56,189,248,.28);
 }
 .auth-logo-title { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1.1; }
@@ -468,8 +469,9 @@ body {
 .logo-mark {
   width: 44px; height: 44px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 13px; display: grid; place-items: center;
-  font-size: 30px;
+  border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; line-height: 1;
   box-shadow: 0 0 28px var(--primary-glow), 0 0 10px rgba(56,189,248,.22);
 }
 .logo-name {
@@ -670,7 +672,7 @@ body {
 .empty-icon {
   width: 80px; height: 80px;
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  border-radius: 24px; display: grid; place-items: center; font-size: 53px;
+  border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 53px; line-height: 1;
   box-shadow: 0 0 52px var(--primary-glow), 0 0 18px rgba(56,189,248,.2);
 }
 .empty-title { font-family: var(--font-display); font-weight: 800; font-size: 1.55rem; text-align: center; }
@@ -715,8 +717,8 @@ body {
 
 .msg-avatar {
   width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-  display: grid; place-items: center; font-size: 22px; font-weight: 700;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; line-height: 1;
 }
 .ai-avatar {
   background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -790,6 +792,17 @@ body {
 }
 .msg-bubble pre code { background: none; color: #dce8f8; padding: 0; }
 .msg-bubble h1 { font-family: var(--font-display); font-size: 1.12rem; color: var(--text-high); margin: 14px 0 7px; }
+
+/* ── New line-by-line markdown classes ───────────────────────── */
+.msg-bubble .md-h1 { font-family: var(--font-display); font-size: 1.12rem; color: var(--text-high); font-weight: 700; margin: 12px 0 5px; display: block; }
+.msg-bubble .md-h2 { font-family: var(--font-display); font-size: 1.02rem; color: var(--text-high); font-weight: 700; margin: 10px 0 4px; display: block; }
+.msg-bubble .md-h3 { font-family: var(--font-display); font-size: .96rem;  color: var(--primary);   font-weight: 600; margin: 8px 0 3px;  display: block; }
+.msg-bubble .md-bullet { padding: 2px 0 2px 4px; line-height: 1.72; display: block; }
+.msg-bubble .md-bullet + .md-bullet { margin-top: 1px; }
+.msg-bubble .md-line   { line-height: 1.75; display: block; }
+.msg-bubble .md-spacer { height: 7px; display: block; }
+.msg-bubble .md-bullet strong,
+.msg-bubble .md-line strong { color: var(--text-high); font-weight: 600; }
 .msg-bubble h2 { font-family: var(--font-display); font-size: 1.02rem; color: var(--text-high); margin: 12px 0 6px; }
 .msg-bubble h3 { font-family: var(--font-display); font-size: .96rem; color: var(--primary); margin: 10px 0 5px; }
 .msg-bubble ul, .msg-bubble ol { padding-left: 22px; margin: 9px 0; }
@@ -808,10 +821,11 @@ body {
 }
 
 .input-box {
-  display: flex; gap: 8px; align-items: center;
+  position: relative;
+  display: flex; align-items: center;
   max-width: 720px; margin: 0 auto;
   background: var(--glass); border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl); padding: 6px 6px 6px 16px;
+  border-radius: var(--r-xl);
   transition: border-color var(--t-slow), box-shadow var(--t-slow);
 }
 .input-box:focus-within {
@@ -824,23 +838,29 @@ textarea {
   width: 100%; background: transparent; border: none; outline: none;
   color: var(--text-high); font-family: var(--font-body);
   font-size: .93rem; line-height: 1.5; resize: none;
-  max-height: 140px; scrollbar-width: thin; padding: 8px 0;
+  max-height: 140px; scrollbar-width: thin;
+  /* padding-right reserves space for the absolute send button */
+  padding: 14px 52px 14px 18px;
 }
-textarea::placeholder { color: var(--text-low); }
+textarea::placeholder { color: rgba(148,163,184,.5); }
 
 .send-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 36px; height: 36px; flex-shrink: 0;
-  display: grid; place-items: center;
+  display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, var(--primary), #15a34a);
   border: none; border-radius: 10px; color: #fff;
   cursor: pointer; transition: all var(--t);
   box-shadow: 0 0 18px var(--primary-glow);
 }
 .send-btn:hover:not(:disabled) {
-  transform: scale(1.08); box-shadow: 0 0 30px var(--primary-glow);
+  transform: translateY(-50%) scale(1.08); box-shadow: 0 0 30px var(--primary-glow);
 }
-.send-btn:active:not(:disabled) { transform: scale(.95); }
-.send-btn:disabled { opacity: .38; cursor: not-allowed; box-shadow: none; transform: none; }
+.send-btn:active:not(:disabled) { transform: translateY(-50%) scale(.95); }
+.send-btn:disabled { opacity: .38; cursor: not-allowed; box-shadow: none; transform: translateY(-50%); }
 
 .input-hint {
   text-align: center; font-size: .67rem; color: var(--text-low);
@@ -896,7 +916,6 @@ textarea::placeholder { color: var(--text-low); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-backdrop.open { display: block; }
   .sidebar-toggle { display: flex; }
-  .send-btn { width: 40px; height: 40px; }
   .messages-container { padding: 0 16px; }
   .input-area { padding: 12px 14px 10px; }
   .chat-header { padding: 0 16px; }
@@ -1672,25 +1691,30 @@ async function renderAIBubble(fullText, time, animate) {
     content.appendChild(t); return;
   }
 
-  // Typewriter animation
-  const cursor = document.createElement('span'); cursor.className = 'typing-cursor';
-  bubble.appendChild(cursor); scrollToBottom();
+  // ── Stream line-by-line ──────────────────────────────────────
+  // Reveal one line at a time so markdown is always parsed on a
+  // complete line — bullets and bold show correctly from the start.
+  const lines = fullText.split('\n');
+  let revealed = 0;          // how many lines revealed so far
+  const LINE_DELAY = 38;     // ms between lines (adjust for feel)
 
-  const speed = Math.max(4, Math.min(16, Math.round(6500 / fullText.length)));
-  let i = 0;
   await new Promise(resolve => {
     const iv = setInterval(() => {
-      i += 4;
-      if (i >= fullText.length) {
+      revealed++;
+      const partial = lines.slice(0, revealed).join('\n');
+
+      if (revealed >= lines.length) {
         clearInterval(iv);
         bubble.innerHTML = parseMarkdown(fullText);
         const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = time || '';
         content.appendChild(t); scrollToBottom(); resolve();
       } else {
-        bubble.textContent = fullText.slice(0, i);
-        bubble.appendChild(cursor); scrollToBottom();
+        // Render complete lines so far + blinking cursor on last line
+        bubble.innerHTML = parseMarkdown(partial) +
+          '<span class="typing-cursor"></span>';
+        scrollToBottom();
       }
-    }, speed);
+    }, LINE_DELAY);
   });
 }
 
@@ -1760,19 +1784,69 @@ function escapeAttr(str) { return String(str).replace(/"/g,'&quot;').replace(/'/
 function escapeHTMLRaw(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function parseMarkdown(text) {
-  return text
-    .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, c) => `<pre><code>${escapeHTMLRaw(c.trim())}</code></pre>`)
-    .replace(/`([^`]+)`/g, (_, c) => `<code>${escapeHTMLRaw(c)}</code>`)
+  // Process line by line so partial lines during streaming stay clean
+  const lines = text.split('\n');
+  let html = '';
+  let inCode = false;
+  let codeBuffer = '';
+  let codeLang = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // ── Code fence open/close ──────────────────────────
+    if (/^```/.test(line)) {
+      if (!inCode) {
+        inCode = true;
+        codeLang = line.slice(3).trim();
+        codeBuffer = '';
+      } else {
+        inCode = false;
+        html += `<pre><code>${escapeHTMLRaw(codeBuffer.trimEnd())}</code></pre>`;
+        codeBuffer = '';
+      }
+      continue;
+    }
+    if (inCode) { codeBuffer += line + '\n'; continue; }
+
+    // ── Headings ───────────────────────────────────────
+    if (/^### /.test(line)) { html += `<div class="md-h3">${inlineMarkdown(line.slice(4))}</div>`; continue; }
+    if (/^## /.test(line))  { html += `<div class="md-h2">${inlineMarkdown(line.slice(3))}</div>`; continue; }
+    if (/^# /.test(line))   { html += `<div class="md-h1">${inlineMarkdown(line.slice(2))}</div>`; continue; }
+
+    // ── Bullet / numbered list → always render as • ───
+    const bulletMatch  = line.match(/^[-*+] (.+)/);
+    const numberedMatch = line.match(/^\d+\. (.+)/);
+    if (bulletMatch || numberedMatch) {
+      const content = bulletMatch ? bulletMatch[1] : numberedMatch[1];
+      html += `<div class="md-bullet">• ${inlineMarkdown(content)}</div>`;
+      continue;
+    }
+
+    // ── Blank line → spacer ────────────────────────────
+    if (line.trim() === '') { html += '<div class="md-spacer"></div>'; continue; }
+
+    // ── Normal paragraph line ─────────────────────────
+    html += `<div class="md-line">${inlineMarkdown(line)}</div>`;
+  }
+
+  // Flush any unclosed code block (happens mid-stream)
+  if (inCode && codeBuffer) {
+    html += `<pre><code>${escapeHTMLRaw(codeBuffer)}</code></pre>`;
+  }
+
+  return html;
+}
+
+// Inline markdown: bold, italic, inline code (safe on partial text)
+function inlineMarkdown(text) {
+  return escapeHTMLRaw(text)
+    // Bold — only process if both ** are present on this line
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
-    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 /* ── BOOT ── */
