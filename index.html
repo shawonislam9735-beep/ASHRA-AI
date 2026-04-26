@@ -17,7 +17,8 @@
     Result: user NEVER sees a login flash
   -->
   <style>
-    body { opacity: 0; }
+    /* Body is visible immediately — no black screen on any load */
+    body { opacity: 1; }
     #loadingScreen {
       position: fixed; inset: 0; z-index: 9999;
       background: #060d1a;
@@ -327,7 +328,7 @@ body {
   -webkit-font-smoothing: antialiased;
   transition: opacity .3s ease;
 }
-body.visible { opacity: 1; }
+/* body is always opacity:1 — no transition class needed */
 
 /* ── BACKGROUND ──────────────────────────────────── */
 .bg-grid {
@@ -1031,71 +1032,76 @@ async function authInit() {
   const savedToken = localStorage.getItem(KEYS.token);
   const savedUser  = localStorage.getItem(KEYS.user);
 
-  // After 4s still loading → tell user server is waking up (Render cold start)
+  // ── STEP 1: Render UI IMMEDIATELY from localStorage ─────────
+  // Never block the screen waiting for a network call.
+  // Show the correct screen right away based on what we have locally.
+  if (savedToken && savedUser) {
+    // Looks like a logged-in user — show the app instantly
+    jwtToken    = savedToken;
+    currentUser = savedUser;
+    showScreenInstant('app');
+  } else {
+    // No saved session — show login instantly
+    showScreenInstant('auth');
+    return; // nothing more to do
+  }
+
+  // ── STEP 2: Verify token in background (non-blocking) ───────
+  // UI is already visible. This runs silently after render.
+  // Only acts if token turns out to be genuinely invalid (401).
   const slowTimer = setTimeout(() => {
     const el = document.getElementById('bootStatus');
     if (el) el.textContent = 'Server waking up… please wait';
-  }, 4000);
+  }, 5000);
 
+  try {
+    const data = await apiCall('/me', { headers: authHeaders() }, 1, 25000);
+    clearTimeout(slowTimer);
+    // Sync username from server (authoritative)
+    currentUser = data.username;
+    localStorage.setItem(KEYS.user, data.username);
+    // Update display name if it changed
+    const display = currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+    const nameEl  = document.getElementById('userNameDisplay');
+    const avatarEl = document.getElementById('userAvatarBadge');
+    if (nameEl)   nameEl.textContent   = display;
+    if (avatarEl) avatarEl.textContent = currentUser.charAt(0).toUpperCase();
 
-  if (savedToken && savedUser) {
-    try {
-      jwtToken = savedToken;
-      // Retry once — handles Render free-tier cold start (can take 30–60s)
-      const data = await apiCall('/me', { headers: authHeaders() }, 1, 25000);
-      clearTimeout(slowTimer);
-      currentUser = data.username;
-      // Keep stored username in sync (server is authoritative)
-      localStorage.setItem(KEYS.user, data.username);
-      revealApp();
-      return;
-    } catch (err) {
-      clearTimeout(slowTimer);
+  } catch (err) {
+    clearTimeout(slowTimer);
+    const isAuthErr = err.message && (
+      err.message.includes('401') ||
+      err.message.toLowerCase().includes('token') ||
+      err.message.toLowerCase().includes('expired') ||
+      err.message.toLowerCase().includes('invalid')
+    );
 
-      const isAuthErr = err.message && (
-        err.message.includes('401') ||
-        err.message.toLowerCase().includes('token') ||
-        err.message.toLowerCase().includes('expired') ||
-        err.message.toLowerCase().includes('invalid')
-      );
-
-      if (isAuthErr) {
-        // Genuine auth failure — clear stored session
-        clearToken();
-        localStorage.removeItem(KEYS.user);
-      } else {
-        // Network failure / server down — DO NOT clear token
-        // Show offline notice but let user stay "logged in" locally
-        revealAuthWithNotice('Server is starting up. Please wait a moment and try again.');
-        return;
-      }
+    if (isAuthErr) {
+      // Genuine bad token — log out gracefully, UI already visible
+      clearToken();
+      localStorage.removeItem(KEYS.user);
+      currentUser = null; chats = []; activeChatId = null;
+      document.getElementById('appShell').style.display   = 'none';
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+      authUsername.focus();
     }
+    // Network errors (server cold start etc.) — do nothing.
+    // User can still use the UI; next chat send will re-auth if needed.
   }
-
-  clearTimeout(slowTimer);
-  revealAuth();
 }
 
-function revealApp() {
+// Render the correct screen immediately — no network wait
+function showScreenInstant(screen) {
   document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('appShell').style.display = 'flex';
-  document.body.style.opacity = '1';
-  document.body.classList.add('visible');
-  initApp();
-}
 
-function revealAuth() {
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('authScreen').style.display = 'flex';
-  document.body.style.opacity = '1';
-  document.body.classList.add('visible');
-  authUsername.focus();
-}
-
-// Show auth screen with a prefilled status message (network down etc.)
-function revealAuthWithNotice(msg) {
-  revealAuth();
-  showAuthMsg(msg, 'error');
+  if (screen === 'app') {
+    document.getElementById('appShell').style.display = 'flex';
+    initApp();
+  } else {
+    document.getElementById('authScreen').style.display = 'flex';
+    authUsername.focus();
+  }
 }
 
 function initApp() {
