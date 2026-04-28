@@ -1653,6 +1653,14 @@ async function handleSend() {
     const reply     = data.reply ?? 'No response received.';
     const replyTime = nowTime();
 
+    // Use server-generated title if available (first message only)
+    // Falls back to local title generation if server didn't return one
+    if (chat.messages.length === 1 && data.title) {
+      chat.title = data.title;
+      headerTitle.textContent = chat.title;
+      saveChats(); renderSidebar();
+    }
+
     // Stream character-by-character into the bubble in real-time
     await streamAIBubble(reply, replyTime);
 
